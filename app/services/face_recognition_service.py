@@ -4,41 +4,52 @@ import face_recognition
 import cv2
 import numpy as np
 from sqlalchemy.orm import Session
-from app.database import User, Attendance
+from app.services.database import User, Attendance
 from app.services.attendance_csv import CSVHandler
 import json
 import redis
-
+import hashlib
 import cv2
 import face_recognition
 import redis
 import json
 
-def register_face(image_path: str, name: str, db: Session):
-    # Load the image
+def register_face(image_path: str, name: str, password: str, db: Session):
+    """
+    Registers a new face with a given name and password, and stores its encoding in Redis and User data in the DB.
+    """
+    # Validate input fields
+    if not name or not password:
+        raise ValueError("Name and password cannot be empty.")
+
+    # Hash the password before storing it for security
+    hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+    # Load the image and convert it to RGB
     image = cv2.imread(image_path)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+
     # Detect face encodings
     face_encodings = face_recognition.face_encodings(rgb_image)
 
     if len(face_encodings) > 0:
         face_encoding = face_encodings[0]
 
-        # Save user details in the traditional database
-        user = User(name=name)
+        # Save user details in the database with hashed password
+        user = User(name=name, password=hashed_password)
         db.add(user)
         db.commit()
         db.refresh(user)
 
-        # Store the face embedding in Redis
+        # Store the face encoding in Redis (as a JSON array)
+        redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
         redis_client.set(user.name, json.dumps(face_encoding.tolist()))
 
+        print(f"User {name} registered successfully.")
         return user
     else:
-        # No face detected
+        print("No face detected.")
         return None
-
 
 def recognize_face(image_path: str,db: Session): 
     # Load image
