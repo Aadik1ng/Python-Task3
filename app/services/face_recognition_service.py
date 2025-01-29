@@ -7,51 +7,57 @@ from sqlalchemy.orm import Session
 from app.database import User, Attendance
 from app.services.attendance_csv import CSVHandler
 import json
+import redis
+
+import cv2
+import face_recognition
+import redis
+import json
 
 def register_face(image_path: str, name: str, db: Session):
     # Load the image
     image = cv2.imread(image_path)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
     # Detect face encodings
     face_encodings = face_recognition.face_encodings(rgb_image)
 
     if len(face_encodings) > 0:
         face_encoding = face_encodings[0]
 
-        # Save the user details and their face embedding to the database
-        user = User(
-            name=name,
-            facial_embedding=str(face_encoding.tolist())  # Convert the numpy array to a list and store it as a string
-        )
+        # Save user details in the traditional database
+        user = User(name=name)
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        # Store the face embedding in Redis
+        redis_client.set(user.name, json.dumps(face_encoding.tolist()))
+
         return user
     else:
         # No face detected
         return None
 
 
-def recognize_face(image_path: str, db: Session):
+def recognize_face(image_path: str,db: Session): 
     # Load image
     image = cv2.imread(image_path)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
     # Get face encoding(s) from the input image
     face_encodings = face_recognition.face_encodings(rgb_image)
 
     if len(face_encodings) > 0:
         face_encoding = face_encodings[0]  # Consider the first face encoding
 
-        # Fetch all registered users and their embeddings from the database
-        users = db.query(User).all()
-        recognized_user = None
+        # Fetch all registered users and their embeddings from Redis
+        recognized_user_name = None
         min_distance = float("inf")  # Initialize with a large value for comparison
 
-        for user in users:
-            # Convert the stored facial embedding string back to a numpy array
-            db_encoding = np.array(json.loads(user.facial_embedding))  # Use JSON instead of eval
+        for key in redis_client.keys():
+            user_name = key
+            db_encoding = np.array(json.loads(redis_client.get(key)))
 
             # Calculate the Euclidean distance between face encodings
             distance = np.linalg.norm(face_encoding - db_encoding)
@@ -60,33 +66,34 @@ def recognize_face(image_path: str, db: Session):
             if distance < 0.6:  # 0.6 is the commonly used threshold for face recognition
                 if distance < min_distance:  # Find the closest match
                     min_distance = distance
-                    recognized_user = user
+                    recognized_user_name = user_name
 
-        if recognized_user:
-            # Mark attendance for the recognized user
-            CSVHandler.initialize_csv()
-            attendance = Attendance(user_id=recognized_user.id)
-            db.add(attendance)
-            db.commit()
-            db.refresh(attendance)
+        if recognized_user_name:
+            # Fetch user details from the traditional database
+            recognized_user = db.query(User).filter(User.name == recognized_user_name).first()
+            if recognized_user:
+                # Mark attendance for the recognized user
+                CSVHandler.initialize_csv()
+                attendance = Attendance(user_id=recognized_user.id)
+                db.add(attendance)
+                db.commit()
+                db.refresh(attendance)
 
-            # Count the user's attendance
-            attendance_count = db.query(Attendance).filter(Attendance.user_id == recognized_user.id).count()
+                # Count the user's attendance
+                attendance_count = db.query(Attendance).filter(Attendance.user_id == recognized_user.id).count()
 
-            # Save to CSV
-            CSVHandler.save_to_csv(
-                recognized_user.id,
-                recognized_user.name,
-                attendance.timestamp,
-                attendance_count,
-            )
+                # Save to CSV
+                CSVHandler.save_to_csv(
+                    recognized_user.id,
+                    recognized_user.name,
+                    attendance.timestamp,
+                    attendance_count,
+                )
 
-            # Debugging: Confirm recognized user details
-            print(f"Recognized User: {recognized_user.name}, Attendance Marked: {attendance.timestamp}")
+                # Debugging: Confirm recognized user details
+                print(f"Recognized User: {recognized_user.name}, Attendance Marked: {attendance.timestamp}")
 
-            return recognized_user, attendance
+                return recognized_user, attendance
 
     # Return None if no match is found
     return None, None
-
-
