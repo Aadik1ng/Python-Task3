@@ -3,6 +3,7 @@ from app.routes.face_recognition import router as face_recognition_router
 from app.routes.login import router as login_router  # Import the login router
 from app.services.database import init_db
 from app.services.attendance_csv import CSVHandler
+from app.routes import download_routes
 
 app = FastAPI()
 
@@ -12,6 +13,7 @@ CSVHandler()
 
 # Include the login router for the /api/Login endpoint
 app.include_router(login_router, prefix="/api")
+app.include_router(download_routes.router, prefix="/attendance")
 
 # Include the face recognition router for the /api/v1 endpoint
 app.include_router(face_recognition_router, prefix="/api")
