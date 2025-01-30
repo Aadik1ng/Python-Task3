@@ -8,7 +8,8 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN pip install cmake && \
+    pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Expose the FastAPI default port
