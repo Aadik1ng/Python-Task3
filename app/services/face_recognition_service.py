@@ -63,7 +63,8 @@ def recognize_face(image_path: str,db: Session):
     # Load image
     image = cv2.imread(image_path)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+    # redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
     # Get face encoding(s) from the input image
     face_encodings = face_recognition.face_encodings(rgb_image)
 
