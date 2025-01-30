@@ -4,9 +4,17 @@ from app.routes.login import router as login_router  # Import the login router
 from app.services.database import init_db
 from app.services.attendance_csv import CSVHandler
 from app.routes import download_routes
+from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can specify ["http://localhost:3000"] to limit to your React app's origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 # Initialize database
 init_db()
 CSVHandler()
