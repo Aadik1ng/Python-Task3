@@ -14,6 +14,6 @@ RUN pip install cmake && \
 
 # Expose the FastAPI default port
 EXPOSE 8000
-
+ENV PORT=8000
 # Start the FastAPI application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
