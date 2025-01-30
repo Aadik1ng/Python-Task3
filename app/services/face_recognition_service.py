@@ -13,7 +13,7 @@ import cv2
 import face_recognition
 import redis
 import json
-
+import os
 def register_face(image_path: str, name: str, password: str, db: Session):
     """
     Registers a new face with a given name and password, and stores its encoding in Redis and User data in the DB.
@@ -42,7 +42,12 @@ def register_face(image_path: str, name: str, password: str, db: Session):
         db.refresh(user)
 
         # Store the face encoding in Redis (as a JSON array)
-        redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+        REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+        redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
+
+        # redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
         redis_client.set(user.name, json.dumps(face_encoding.tolist()))
 
         print(f"User {name} registered successfully.")
