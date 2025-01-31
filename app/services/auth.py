@@ -1,4 +1,6 @@
 import jwt
+from jwt.exceptions import PyJWTError
+
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -52,5 +54,5 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         if username is None:
             raise credentials_exception
         return username
-    except jwt.JWTError:
+    except PyJWTError:
         raise credentials_exception
