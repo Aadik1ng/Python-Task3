@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
 from app.routes.face_recognition import router as face_recognition_router
 from app.routes.login import router as login_router  # Import the login router
 from app.services.database import init_db
 from app.services.attendance_csv import CSVHandler
 from app.routes import download_routes
 from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 app = FastAPI()
 
@@ -15,6 +16,15 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+
+@app.middleware("http")
+async def redirect_to_https(request: Request, call_next):
+    if request.url.scheme == "http":
+        url = request.url.replace(scheme="https")
+        return RedirectResponse(url)
+    return await call_next(request)
+
+
 # Initialize database
 init_db()
 CSVHandler()
