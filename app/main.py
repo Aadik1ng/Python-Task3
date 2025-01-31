@@ -16,17 +16,17 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
-@app.middleware("http")
-async def redirect_to_https(request: Request, call_next):
-    # Skip redirect for preflight (OPTIONS) requests
-    if request.method == "OPTIONS":
-        return await call_next(request)
+# @app.middleware("http")
+# async def redirect_to_https(request: Request, call_next):
+#     # Skip redirect for preflight (OPTIONS) requests
+#     if request.method == "OPTIONS":
+#         return await call_next(request)
     
-    # Perform the redirection for non-OPTIONS requests
-    if request.url.scheme == "http":
-        url = request.url.replace(scheme="https")
-        return RedirectResponse(url)
-    return await call_next(request)
+#     # Perform the redirection for non-OPTIONS requests
+#     if request.url.scheme == "http":
+#         url = request.url.replace(scheme="https")
+#         return RedirectResponse(url)
+#     return await call_next(request)
 
 
 # Initialize database
