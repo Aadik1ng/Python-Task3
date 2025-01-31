@@ -11,7 +11,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can specify ["http://localhost:3000"] to limit to your React app's origin
+    allow_origins=["https://python-task3-frontend.vercel.app"],  # You can specify ["http://localhost:3000"] to limit to your React app's origin
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
